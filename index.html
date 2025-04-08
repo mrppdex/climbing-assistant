@@ -10,11 +10,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js"></script>
   <style>
     /* Basic Reset */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       background-color: #2c3e50;
       font-family: Arial, sans-serif;
@@ -23,12 +19,14 @@
       align-items: center;
       min-height: 100vh;
     }
-    /* Card Container */
+    /* Card Container: responsive */
     .training-card {
+      width: 80%;
+      max-width: 800px;
+      min-width: 320px;
       background-color: #fff;
-      width: 320px;
       border-radius: 20px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       padding: 20px;
     }
     /* Header Section */
@@ -42,24 +40,11 @@
       display: flex;
       align-items: center;
     }
-    .header-left img {
-      width: 24px;
-      height: 24px;
-      margin-right: 8px;
-    }
-    .header-left h1 {
-      font-size: 20px;
-      font-weight: 600;
-    }
-    .settings-icon {
-      width: 24px;
-      height: 24px;
-      cursor: pointer;
-    }
+    .header-left img { width: 24px; height: 24px; margin-right: 8px; }
+    .header-left h1 { font-size: 20px; font-weight: 600; }
+    .settings-icon { width: 24px; height: 24px; cursor: pointer; }
     /* Training List */
-    #trainingList {
-      margin-bottom: 20px;
-    }
+    #trainingList { margin-bottom: 20px; }
     .training-block {
       display: flex;
       justify-content: space-between;
@@ -69,19 +54,9 @@
       margin-bottom: 10px;
       color: #333;
     }
-    .training-label {
-      display: flex;
-      align-items: center;
-      font-weight: 500;
-    }
-    .training-label img {
-      width: 16px;
-      height: 16px;
-      margin-right: 8px;
-    }
-    .training-time {
-      font-weight: 600;
-    }
+    .training-label { display: flex; align-items: center; font-weight: 500; }
+    .training-label img { width: 16px; height: 16px; margin-right: 8px; }
+    .training-time { font-weight: 600; }
     /* Pastel backgrounds for exercise subtypes */
     .block-climb { background-color: #d1e8ff; }
     .block-hang  { background-color: #ffe2b3; }
@@ -89,66 +64,47 @@
     /* REST blocks */
     .block-rest  { background-color: #d2f5d0; }
     /* Input Section */
-    .input-section {
-      margin-bottom: 20px;
-    }
+    .input-section { margin-bottom: 20px; }
     .input-section select,
     .input-section input {
-      width: 100%;
-      padding: 8px;
-      margin-bottom: 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+      width: 100%; padding: 8px; margin-bottom: 8px;
+      border-radius: 6px; border: 1px solid #ccc;
     }
     .input-section button {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
+      width: 100%; padding: 10px;
+      border: none; border-radius: 6px;
       background-color: #e0e0e0;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
+      font-size: 16px; font-weight: 600; cursor: pointer;
     }
-    .input-section button:hover {
-      background-color: #d4d4d4;
-    }
+    .input-section button:hover { background-color: #d4d4d4; }
     /* Start Training Button */
     .start-btn {
-      width: 100%;
-      padding: 12px;
-      background-color: #1e90ff;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
+      width: 100%; padding: 12px;
+      background-color: #1e90ff; color: #fff;
+      border: none; border-radius: 6px;
+      font-size: 16px; font-weight: 600; cursor: pointer;
     }
-    .start-btn:hover {
-      background-color: #1c86ee;
-    }
+    .start-btn:hover { background-color: #1c86ee; }
     /* Timer View */
-    #timerView {
-      display: none;
-    }
-    .timer-section {
-      margin-bottom: 15px;
-    }
+    #timerView { display: none; }
+    .timer-section { margin-bottom: 15px; }
     .progress-bar-container {
-      width: 100%;
-      background-color: #ddd;
-      border-radius: 20px;
-      overflow: hidden;
-      margin-top: 5px;
-      height: 20px;
+      width: 100%; background-color: #ddd;
+      border-radius: 20px; overflow: hidden;
+      margin-top: 5px; height: 20px;
     }
     .progress-bar {
-      height: 100%;
-      width: 0%;
+      height: 100%; width: 0%;
       background-color: #1e90ff;
-      transition: width 0.5s ease;
+      transition: width 0.05s linear;
     }
+    /* Group Editor Styles */
+    #groupEditor {
+      border: 1px dashed #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    #groupSubBlockList { margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -170,25 +126,62 @@
         <select id="blockType">
           <option value="repeat">Repeat</option>
           <option value="rest">Rest</option>
+          <option value="group">Group</option>
         </select>
-        <!-- Fields for Repeat Block -->
+        <!-- Repeat Block Fields (Global) -->
         <div id="repeatFields">
-          <!-- Exercise Subtype Dropdown -->
           <select id="exerciseSubtype">
             <option value="Climb">Climb</option>
             <option value="Hang">Hang</option>
             <option value="Other">Other</option>
           </select>
-          <!-- Duration for exercise -->
           <input id="duration" type="number" placeholder="Duration (sec)">
-          <!-- Repeat Count -->
           <input id="repeatCount" type="number" placeholder="Repeat Count">
-          <!-- Rest Duration inserted between repetitions -->
           <input id="restDuration" type="number" placeholder="Rest Duration (sec)">
         </div>
-        <!-- Field for Rest Block -->
+        <!-- Rest Block Field (Global) -->
         <div id="restFields" style="display:none;">
           <input id="restOnlyDuration" type="number" placeholder="Rest Duration (sec)">
+        </div>
+        <!-- Group Block Editor -->
+        <div id="groupEditor" style="display:none;">
+          <!-- Overall Group Repeat Count (renamed for clarity) -->
+          <input id="groupRepeatTotal" type="number" placeholder="Group Repeat Count">
+          <!-- Group Sub-Block Editor: You can add a sub-block of type Exercise, Rest, or Repeat -->
+          <select id="groupSubType">
+            <option value="exercise">Exercise</option>
+            <option value="rest">Rest</option>
+            <option value="repeat">Repeat</option>
+          </select>
+          <div id="groupSubFields">
+            <!-- For Exercise sub-block -->
+            <div id="groupExerciseFields">
+              <select id="groupExerciseSubtype">
+                <option value="Climb">Climb</option>
+                <option value="Hang">Hang</option>
+                <option value="Other">Other</option>
+              </select>
+              <input id="groupExerciseDuration" type="number" placeholder="Duration (sec)">
+            </div>
+            <!-- For Rest sub-block -->
+            <div id="groupRestFields" style="display:none;">
+              <input id="groupRestDuration" type="number" placeholder="Rest Duration (sec)">
+            </div>
+            <!-- For Repeat sub-block within Group -->
+            <div id="groupRepeatFields" style="display:none;">
+              <select id="groupRepeatExerciseSubtype">
+                <option value="Climb">Climb</option>
+                <option value="Hang">Hang</option>
+                <option value="Other">Other</option>
+              </select>
+              <input id="groupRepeatDuration" type="number" placeholder="Duration (sec)">
+              <!-- This input now uses a new ID for the sub-block repeat count -->
+              <input id="groupSubRepeatCount" type="number" placeholder="Repeat Count">
+              <input id="groupRepeatRestDuration" type="number" placeholder="Rest Duration (sec)">
+            </div>
+          </div>
+          <button id="addGroupSubBlock">Add Sub-Block</button>
+          <div id="groupSubBlockList"></div>
         </div>
         <button id="addBlock">ADD EXERCISE</button>
       </div>
@@ -217,94 +210,168 @@
   </div>
 
   <script>
-    // Global variables for training plan and timer
-    let trainingBlocks = [];  // Each block is either a "repeat" or "rest" block
-    let sequence = [];        // Flattened sequence of training events
+    /*************************************
+     * Global Variables & Sound Objects *
+     *************************************/
+    let trainingBlocks = [];  // Stores global blocks (repeat, rest, group)
+    let sequence = [];        // Flattened sequence of training events.
     let overallDuration = 0;
     let overallElapsed = 0;
     let currentBlockIndex = 0;
     let currentBlockElapsed = 0;
     let trainingRunning = false;
-    let lastTickTime = 0;
-
-    // NoSleep instance
     let noSleep;
-
-    // p5 sound objects
+    // Sound objects
     let gongOsc, pleasingOsc, beepOsc;
     let gongEnv, pleasingEnv, beepEnv;
+    
+    // For Group Editor: temporary storage for sub-blocks.
+    let groupSubBlocks = [];
 
+    /*************************************
+     * p5.js Setup
+     *************************************/
     function setup() {
-      noCanvas(); // We use DOM only
-
-      // Initialize NoSleep.js
+      noCanvas();  // We use DOM only.
       noSleep = new NoSleep();
-
-      // Initialize sound generators
-
-      // Gong: a low tone with a long decay
+      
+      // Initialize sound generators.
       gongOsc = new p5.Oscillator('sine');
       gongEnv = new p5.Envelope();
       gongEnv.setADSR(0.05, 1.5, 0.1, 1.0);
       gongEnv.setRange(1, 0);
       gongOsc.amp(0);
       gongOsc.start();
-
-      // Pleasing sound: a chime-like tone
+      
       pleasingOsc = new p5.Oscillator('triangle');
       pleasingEnv = new p5.Envelope();
       pleasingEnv.setADSR(0.01, 0.3, 0.1, 0.5);
       pleasingEnv.setRange(0.5, 0);
       pleasingOsc.amp(0);
       pleasingOsc.start();
-
-      // Beep: a short, quick tone
+      
       beepOsc = new p5.Oscillator('sine');
       beepEnv = new p5.Envelope();
       beepEnv.setADSR(0.005, 0.1, 0.05, 0.1);
       beepEnv.setRange(0.3, 0);
       beepOsc.amp(0);
       beepOsc.start();
-
-      // Set up input field visibility based on block type
-      const blockTypeElem = select('#blockType');
-      blockTypeElem.changed(updateInputVisibility);
-      updateInputVisibility(); // Set initial visibility
-
-      // Add Block button handler
+      
+      // Update input visibility based on block type.
+      select('#blockType').changed(updateInputVisibility);
+      updateInputVisibility();
+      
+      // For Group Editor: update sub-fields based on sub-type.
+      select('#groupSubType').changed(() => {
+        let val = select('#groupSubType').value();
+        if(val === "exercise"){
+          select('#groupExerciseFields').show();
+          select('#groupRestFields').hide();
+          select('#groupRepeatFields').hide();
+        } else if(val === "rest"){
+          select('#groupExerciseFields').hide();
+          select('#groupRestFields').show();
+          select('#groupRepeatFields').hide();
+        } else if(val === "repeat"){
+          select('#groupExerciseFields').hide();
+          select('#groupRestFields').hide();
+          select('#groupRepeatFields').show();
+        }
+      });
+      
+      // Button to add a sub-block in Group Editor.
+      select('#addGroupSubBlock').mousePressed(() => {
+        let subType = select('#groupSubType').value();
+        if(subType === "exercise"){
+          let exerciseSubtype = select('#groupExerciseSubtype').value();
+          let duration = parseInt(select('#groupExerciseDuration').value());
+          if(!duration || duration <= 0){
+            alert('Please enter a valid Duration for the Exercise sub-block.');
+            return;
+          }
+          groupSubBlocks.push({ type: "exercise", exerciseSubtype, duration });
+          let listDiv = select('#groupSubBlockList');
+          let newItem = createDiv("Exercise: " + exerciseSubtype + " - " + duration + " sec");
+          newItem.parent(listDiv);
+          select('#groupExerciseDuration').value('');
+        } else if(subType === "rest"){
+          let duration = parseInt(select('#groupRestDuration').value());
+          if(!duration || duration <= 0){
+            alert('Please enter a valid Duration for the Rest sub-block.');
+            return;
+          }
+          groupSubBlocks.push({ type: "rest", duration });
+          let listDiv = select('#groupSubBlockList');
+          let newItem = createDiv("Rest: " + duration + " sec");
+          newItem.parent(listDiv);
+          select('#groupRestDuration').value('');
+        } else if(subType === "repeat"){
+          let exerciseSubtype = select('#groupRepeatExerciseSubtype').value();
+          let duration = parseInt(select('#groupRepeatDuration').value());
+          // Use the new ID for repeat count in sub-block
+          let repeatCount = parseInt(select('#groupSubRepeatCount').value());
+          let restDuration = parseInt(select('#groupRepeatRestDuration').value());
+          if(!duration || duration <= 0){
+            alert('Please enter a valid Duration for the Repeat sub-block.');
+            return;
+          }
+          if(!repeatCount || repeatCount <= 0){
+            alert('Please enter a valid Repeat Count for the Repeat sub-block.');
+            return;
+          }
+          if(isNaN(restDuration) || restDuration < 0){
+            alert('Please enter a valid Rest Duration for the Repeat sub-block.');
+            return;
+          }
+          groupSubBlocks.push({
+            type: "repeat",
+            exerciseSubtype,
+            duration,
+            repeatCount,
+            restDuration
+          });
+          let listDiv = select('#groupSubBlockList');
+          let newItem = createDiv("Repeat: " + exerciseSubtype + " | " + duration + " sec, repeats: " + repeatCount + ", rest: " + restDuration + " sec");
+          newItem.parent(listDiv);
+          select('#groupRepeatDuration').value('');
+          select('#groupSubRepeatCount').value('');
+          select('#groupRepeatRestDuration').value('');
+        }
+      });
+      
+      // Add Block button handler.
       select('#addBlock').mousePressed(() => {
-        let blockType = blockTypeElem.value();
-        if (blockType === 'repeat') {
+        let blockType = select('#blockType').value();
+        if(blockType === "repeat"){
           let exerciseSubtype = select('#exerciseSubtype').value();
           let duration = parseInt(select('#duration').value());
           let repeatCount = parseInt(select('#repeatCount').value());
           let restDuration = parseInt(select('#restDuration').value());
-          if (!duration || duration <= 0) {
+          if(!duration || duration <= 0){
             alert('Please enter a valid Duration.');
             return;
           }
-          if (!repeatCount || repeatCount <= 0) {
+          if(!repeatCount || repeatCount <= 0){
             alert('Please enter a valid Repeat Count.');
             return;
           }
-          if (isNaN(restDuration) || restDuration < 0) {
+          if(isNaN(restDuration) || restDuration < 0){
             alert('Please enter a valid Rest Duration.');
             return;
           }
           trainingBlocks.push({
             type: "repeat",
-            exerciseSubtype: exerciseSubtype,
-            duration: duration,
-            repeatCount: repeatCount,
-            restDuration: restDuration
+            exerciseSubtype,
+            duration,
+            repeatCount,
+            restDuration
           });
-          // Clear fields for repeat block
           select('#duration').value('');
           select('#repeatCount').value('');
           select('#restDuration').value('');
-        } else if (blockType === 'rest') {
+        } else if(blockType === "rest"){
           let restOnlyDuration = parseInt(select('#restOnlyDuration').value());
-          if (!restOnlyDuration || restOnlyDuration <= 0) {
+          if(!restOnlyDuration || restOnlyDuration <= 0){
             alert('Please enter a valid Rest Duration.');
             return;
           }
@@ -313,194 +380,280 @@
             duration: restOnlyDuration
           });
           select('#restOnlyDuration').value('');
+        } else if(blockType === "group"){
+          let groupRepeatTotal = parseInt(select('#groupRepeatTotal').value());
+          if(!groupRepeatTotal || groupRepeatTotal <= 0){
+            alert('Please enter a valid Group Repeat Count.');
+            return;
+          }
+          if(groupSubBlocks.length === 0){
+            alert('Please add at least one sub-block for the group.');
+            return;
+          }
+          trainingBlocks.push({
+            type: "group",
+            groupRepeatTotal,
+            groupBlocks: groupSubBlocks.slice() // clone array
+          });
+          groupSubBlocks = [];
+          select('#groupSubBlockList').html('');
+          select('#groupRepeatTotal').value('');
         }
         updateTrainingList();
       });
-
+      
+      // Start Training button handler.
       select('#startTraining').mousePressed(() => {
-        if (trainingBlocks.length === 0) {
+        if(trainingBlocks.length === 0){
           alert('Please add at least one training block.');
           return;
         }
-        // Enable NoSleep to keep the device awake
         noSleep.enable();
-        // Resume AudioContext after user gesture
         getAudioContext().resume();
-
-        // Build the flattened training sequence.
-        // For each block in trainingBlocks:
-        //   - If type "repeat": for each repetition, add an exercise event and, if not the last repetition and restDuration > 0, add a rest event.
-        //   - If type "rest": add a single rest event.
+        
         buildSequence();
         overallDuration = sequence.reduce((acc, evt) => acc + evt.duration, 0);
         overallElapsed = 0;
         currentBlockIndex = 0;
         currentBlockElapsed = 0;
         trainingRunning = true;
-        lastTickTime = millis();
-
-        // Switch views: hide plan view, show timer view
+        
         select('#planView').hide();
         select('#timerView').show();
-
-        playGong(); // Play gong at start of training.
+        
+        playGong();
       });
     }
-
-    // Update visibility of input fields based on selected block type.
-    function updateInputVisibility() {
+    
+    // Update visibility of input sections based on selected block type.
+    function updateInputVisibility(){
       let blockType = select('#blockType').value();
-      if (blockType === 'repeat') {
+      if(blockType === "repeat"){
         select('#repeatFields').show();
         select('#restFields').hide();
-      } else if (blockType === 'rest') {
+        select('#groupEditor').hide();
+      } else if(blockType === "rest"){
         select('#repeatFields').hide();
         select('#restFields').show();
+        select('#groupEditor').hide();
+      } else if(blockType === "group"){
+        select('#repeatFields').hide();
+        select('#restFields').hide();
+        select('#groupEditor').show();
       }
     }
-
-    function draw() {
-      if (!trainingRunning) return;
-      let currentTime = millis();
-      if (currentTime - lastTickTime >= 1000) {
-        lastTickTime = currentTime;
-        overallElapsed++;
-        currentBlockElapsed++;
-
-        let currentEvt = sequence[currentBlockIndex];
-
-        // If current event is a "rest" event and 10 or fewer seconds remain, play a beep.
-        if (
-          currentEvt.type === 'rest' &&
-          (currentEvt.duration - currentBlockElapsed) <= 10 &&
-          (currentEvt.duration - currentBlockElapsed) > 0
-        ) {
-          playBeep();
-        }
-
-        // When the current event finishes, play pleasing sound and move to next event.
-        if (currentBlockElapsed >= currentEvt.duration) {
-          playPleasing();
-          currentBlockIndex++;
-          currentBlockElapsed = 0;
-          // End of overall training.
-          if (currentBlockIndex >= sequence.length) {
-            trainingRunning = false;
-            playGong();
-            alert('Training complete!');
-            select('#timerView').hide();
-            select('#planView').show();
-            return;
+    
+    /*************************************
+     * p5.js Draw Loop – Smooth Timing  *
+     *************************************/
+    function draw(){
+      if(!trainingRunning) return;
+      let dt = deltaTime / 1000;
+      overallElapsed += dt;
+      currentBlockElapsed += dt;
+      
+      let currentEvt = sequence[currentBlockIndex];
+      // For rest events, if ≤10 sec remain, play a beep (once per second)
+      if(currentEvt.type === "rest"){
+        if(currentEvt.duration - currentBlockElapsed <= 10 && currentEvt.duration - currentBlockElapsed > 0){
+          if(!currentEvt.lastBeepSecond || floor(currentBlockElapsed) > currentEvt.lastBeepSecond){
+            currentEvt.lastBeepSecond = floor(currentBlockElapsed);
+            playBeep();
           }
         }
-        updateTimerDisplays();
       }
+      
+      if(currentBlockElapsed >= currentEvt.duration){
+        playPleasing();
+        currentBlockIndex++;
+        currentBlockElapsed = 0;
+        if(currentBlockIndex >= sequence.length){
+          trainingRunning = false;
+          select('#blockTimer').html("TRAINING COMPLETE");
+          select('#overallTimer').html("TRAINING COMPLETE");
+          select('#overallProgress').style('width','100%');
+          select('#blockProgress').style('width','100%');
+          return;
+        }
+      }
+      updateTimerDisplays();
     }
-
-    // Update timer displays and progress bars.
-    function updateTimerDisplays() {
+    
+    /*************************************
+     * Timer Displays & Progress Bars   *
+     *************************************/
+    function updateTimerDisplays(){
       let overallLeft = overallDuration - overallElapsed;
       select('#overallTimer').html(
-        'Overall: ' + overallElapsed + ' sec passed, ' + overallLeft + ' sec left'
+        'Overall: ' + nf(overallElapsed,1,1) + ' sec passed, ' + nf(overallLeft,1,1) + ' sec left'
       );
       let overallProgressPercent = (overallElapsed / overallDuration) * 100;
       select('#overallProgress').style('width', overallProgressPercent + '%');
-
+      
       let currentEvt = sequence[currentBlockIndex];
       let evtLeft = currentEvt.duration - currentBlockElapsed;
-      let evtLabel = '';
-      if (currentEvt.type === 'exercise') {
-        evtLabel = currentEvt.exerciseSubtype.toUpperCase();
-      } else if (currentEvt.type === 'rest') {
-        evtLabel = 'REST';
+      let evtLabel = "";
+      if(currentEvt.type === "exercise"){
+        evtLabel = currentEvt.exerciseSubtype;
+        if(currentEvt.iteration){
+          evtLabel += " (" + currentEvt.iteration + "/" + currentEvt.total + ")";
+        }
+        if(currentEvt.groupIteration){
+          evtLabel = "GROUP " + evtLabel + " (" + currentEvt.groupIteration + "/" + currentEvt.groupTotal + ")";
+        }
+      } else if(currentEvt.type === "rest"){
+        evtLabel = "REST";
+        if(currentEvt.iteration){
+          evtLabel += " (" + currentEvt.iteration + "/" + currentEvt.total + ")";
+        }
+        if(currentEvt.groupIteration){
+          evtLabel = "GROUP REST (" + currentEvt.groupIteration + "/" + currentEvt.groupTotal + ")";
+        }
       }
       select('#blockTimer').html(
-        evtLabel + ': ' + currentBlockElapsed + ' sec passed, ' + evtLeft + ' sec left'
+        evtLabel + ": " + nf(currentBlockElapsed,1,1) + " sec passed, " + nf(evtLeft,1,1) + " sec left"
       );
       let evtProgressPercent = (currentBlockElapsed / currentEvt.duration) * 100;
       select('#blockProgress').style('width', evtProgressPercent + '%');
     }
-
-    // Update the training list display.
-    function updateTrainingList() {
-      let listDiv = select('#trainingList');
-      listDiv.html('');
-      for (let i = 0; i < trainingBlocks.length; i++) {
-        let block = trainingBlocks[i];
-        let text = '';
-        if (block.type === 'repeat') {
-          text = 'REPEAT: ' + block.exerciseSubtype +
-                 ' | Duration: ' + block.duration + ' sec' +
-                 ' | Repeats: ' + block.repeatCount +
-                 ' | Rest: ' + block.restDuration + ' sec';
-        } else if (block.type === 'rest') {
-          text = 'REST: ' + block.duration + ' sec';
-        }
-        let blockDiv = createDiv(text);
-        blockDiv.class('training-block');
-        // Apply pastel background based on block type.
-        if (block.type === 'repeat') {
-          if (block.exerciseSubtype === 'Climb') blockDiv.addClass('block-climb');
-          else if (block.exerciseSubtype === 'Hang') blockDiv.addClass('block-hang');
-          else if (block.exerciseSubtype === 'Other') blockDiv.addClass('block-other');
-        } else if (block.type === 'rest') {
-          blockDiv.addClass('block-rest');
-        }
-        // Add a remove button.
-        let removeBtn = createButton('Remove');
-        removeBtn.mousePressed(() => {
-          trainingBlocks.splice(i, 1);
-          updateTrainingList();
-        });
-        blockDiv.child(removeBtn);
-        blockDiv.parent(listDiv);
-      }
-    }
-
-    // Build the flattened training sequence.
-    // For each block in trainingBlocks:
-    //  - If type "repeat": for each repetition, add an exercise event and (if not last repetition and restDuration > 0) a rest event.
-    //  - If type "rest": add a single rest event.
-    function buildSequence() {
+    
+    /*************************************
+     * Build Training Sequence          *
+     *************************************/
+    function buildSequence(){
       sequence = [];
       trainingBlocks.forEach(block => {
-        if (block.type === 'repeat') {
-          for (let i = 1; i <= block.repeatCount; i++) {
-            // Add exercise event.
+        if(block.type === "repeat"){
+          for(let i = 1; i <= block.repeatCount; i++){
             sequence.push({
-              type: 'exercise',
+              type: "exercise",
               exerciseSubtype: block.exerciseSubtype,
               duration: block.duration,
               iteration: i,
               total: block.repeatCount
             });
-            // If not the last repetition and restDuration > 0, add a rest event.
-            if (i < block.repeatCount && block.restDuration > 0) {
+            if(i < block.repeatCount && block.restDuration > 0){
               sequence.push({
-                type: 'rest',
-                duration: block.restDuration
+                type: "rest",
+                duration: block.restDuration,
+                iteration: i,
+                total: block.repeatCount
               });
             }
           }
-        } else if (block.type === 'rest') {
+        } else if(block.type === "rest"){
           sequence.push({
-            type: 'rest',
+            type: "rest",
             duration: block.duration
           });
+        } else if(block.type === "group"){
+          // Use the overall group repeat count from groupRepeatTotal.
+          for(let i = 1; i <= block.groupRepeatTotal; i++){
+            block.groupBlocks.forEach(subBlock => {
+              if(subBlock.type === "exercise"){
+                sequence.push({
+                  type: "exercise",
+                  exerciseSubtype: subBlock.exerciseSubtype,
+                  duration: subBlock.duration,
+                  groupIteration: i,
+                  groupTotal: block.groupRepeatTotal
+                });
+              } else if(subBlock.type === "rest"){
+                sequence.push({
+                  type: "rest",
+                  duration: subBlock.duration,
+                  groupIteration: i,
+                  groupTotal: block.groupRepeatTotal
+                });
+              } else if(subBlock.type === "repeat"){
+                for(let j = 1; j <= subBlock.repeatCount; j++){
+                  sequence.push({
+                    type: "exercise",
+                    exerciseSubtype: subBlock.exerciseSubtype,
+                    duration: subBlock.duration,
+                    iteration: j,
+                    total: subBlock.repeatCount,
+                    groupIteration: i,
+                    groupTotal: block.groupRepeatTotal
+                  });
+                  if(j < subBlock.repeatCount && subBlock.restDuration > 0){
+                    sequence.push({
+                      type: "rest",
+                      duration: subBlock.restDuration,
+                      iteration: j,
+                      total: subBlock.repeatCount,
+                      groupIteration: i,
+                      groupTotal: block.groupRepeatTotal
+                    });
+                  }
+                }
+              }
+            });
+          }
         }
       });
     }
-
-    // Sound functions using p5.Oscillator and Envelope.
-    function playGong() {
+    
+    /*************************************
+     * Update Training List Display     *
+     *************************************/
+    function updateTrainingList(){
+      let listDiv = select('#trainingList');
+      listDiv.html('');
+      trainingBlocks.forEach((block, i) => {
+        let text = "";
+        if(block.type === "repeat"){
+          text = "REPEAT: " + block.exerciseSubtype +
+                 " | Duration: " + block.duration + " sec" +
+                 " | Repeats: " + block.repeatCount +
+                 " | Rest: " + block.restDuration + " sec";
+        } else if(block.type === "rest"){
+          text = "REST: " + block.duration + " sec";
+        } else if(block.type === "group"){
+          text = "GROUP: Repeats: " + block.groupRepeatTotal + " | Sub-Blocks: ";
+          block.groupBlocks.forEach(sub => {
+            if(sub.type === "exercise"){
+              text += "[Exercise: " + sub.exerciseSubtype + ", " + sub.duration + " sec] ";
+            } else if(sub.type === "rest"){
+              text += "[Rest: " + sub.duration + " sec] ";
+            } else if(sub.type === "repeat"){
+              text += "[Repeat: " + sub.exerciseSubtype + ", " + sub.duration + " sec, repeats: " + sub.repeatCount + ", rest: " + sub.restDuration + " sec] ";
+            }
+          });
+        }
+        let blockDiv = createDiv(text);
+        blockDiv.class("training-block");
+        if(block.type === "repeat"){
+          if(block.exerciseSubtype === "Climb") blockDiv.addClass("block-climb");
+          else if(block.exerciseSubtype === "Hang") blockDiv.addClass("block-hang");
+          else if(block.exerciseSubtype === "Other") blockDiv.addClass("block-other");
+        } else if(block.type === "rest"){
+          blockDiv.addClass("block-rest");
+        } else if(block.type === "group"){
+          blockDiv.addClass("block-other");
+        }
+        let removeBtn = createButton("Remove");
+        removeBtn.mousePressed(() => {
+          trainingBlocks.splice(i,1);
+          updateTrainingList();
+        });
+        blockDiv.child(removeBtn);
+        blockDiv.parent(listDiv);
+      });
+    }
+    
+    /*************************************
+     * Sound Functions                  *
+     *************************************/
+    function playGong(){
       gongOsc.freq(150);
       gongEnv.play(gongOsc, 0, 0.5);
     }
-    function playPleasing() {
+    function playPleasing(){
       pleasingOsc.freq(600);
       pleasingEnv.play(pleasingOsc, 0, 0.5);
     }
-    function playBeep() {
+    function playBeep(){
       beepOsc.freq(1000);
       beepEnv.play(beepOsc, 0, 0.1);
     }
