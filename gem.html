@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climber Training Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+      @font-face {
+        font-family: 'LucideIcons';
+        src: url(https://cdn.jsdelivr.net/npm/lucide-static@latest/font/Lucide.ttf) format('truetype');
+      }
+      .lucide {
+        font-family: 'LucideIcons';
+        font-size: 1.5rem; /* Adjust size as needed */
+        line-height: 1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      /* Custom styles for progress ring */
+      .progress-ring__circle {
+        transition: stroke-dashoffset 0.35s;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+      }
+      /* Basic input styling consistency */
+      input[type="number"] {
+        -moz-appearance: textfield; /* Firefox */
+      }
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0; /* Safari and Chrome */
+      }
+      /* Custom focus ring */
+       input:focus, button:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Tailwind blue-500 focus ring */
+      }
+    </style>
+    <script>
+        // Initialize Tailwind CSS
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'hang': 'rgba(239, 68, 68, 0.1)', // bg-red-100
+                        'hang-dark': 'rgba(220, 38, 38, 1)', // text-red-600
+                        'rest': 'rgba(34, 197, 94, 0.1)', // bg-green-100
+                        'rest-dark': 'rgba(22, 163, 74, 1)', // text-green-600
+                        'prepare': 'rgba(249, 115, 22, 0.1)', // bg-orange-100
+                        'prepare-dark': 'rgba(234, 88, 12, 1)', // text-orange-600
+                        'set-rest': 'rgba(59, 130, 246, 0.1)', // bg-blue-100
+                        'set-rest-dark': 'rgba(37, 99, 235, 1)', // text-blue-600
+                        'finished': 'rgba(107, 114, 128, 0.1)', // bg-gray-100
+                        'finished-dark': 'rgba(75, 85, 99, 1)', // text-gray-600
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 font-sans flex flex-col items-center justify-center min-h-screen p-4 selection:bg-blue-200">
+
+    <div class="bg-white rounded-xl shadow-xl p-6 md:p-8 w-full max-w-lg">
+
+        <h1 class="text-2xl md:text-3xl font-bold text-center text-gray-800 mb-6">Climber Training Timer</h1>
+
+        <div id="timer-display" class="text-center mb-6 p-6 rounded-lg transition-colors duration-300 bg-gray-100">
+            <div id="phase-name" class="text-xl font-semibold uppercase tracking-wider mb-2 text-gray-600">Idle</div>
+            <div id="time-left" class="text-7xl md:text-8xl font-bold text-gray-800 tabular-nums">
+                00:00
+            </div>
+             <div class="mt-4 flex justify-center">
+                 <svg id="progress-ring" class="w-24 h-24" viewBox="0 0 120 120">
+                    <circle class="text-gray-300" stroke-width="10" stroke="currentColor" fill="transparent" r="52" cx="60" cy="60"/>
+                    <circle id="progress-ring-circle"
+                            class="progress-ring__circle text-blue-500"
+                            stroke-width="10"
+                            stroke-linecap="round"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="52"
+                            cx="60"
+                            cy="60"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-6 text-center">
+            <div class="bg-gray-50 p-3 rounded-md">
+                <div class="text-sm text-gray-500">Set</div>
+                <div id="current-set" class="text-xl font-semibold text-gray-700">- / -</div>
+            </div>
+            <div class="bg-gray-50 p-3 rounded-md">
+                <div class="text-sm text-gray-500">Rep</div>
+                <div id="current-rep" class="text-xl font-semibold text-gray-700">- / -</div>
+            </div>
+        </div>
+
+        <div class="flex justify-center space-x-3 mb-8">
+            <button id="start-pause-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out shadow hover:shadow-md flex items-center space-x-2">
+                <span>Start</span>
+            </button>
+            <button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out shadow hover:shadow-md flex items-center space-x-2">
+                <span>Reset</span>
+            </button>
+             <button id="skip-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out shadow hover:shadow-md flex items-center space-x-2" disabled>
+                <span>Skip</span>
+            </button>
+        </div>
+
+        <div class="border-t border-gray-200 pt-6">
+            <h2 class="text-lg font-semibold text-gray-700 mb-4 text-center">Workout Configuration</h2>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-4">
+                <div>
+                    <label for="hang-time" class="block text-sm font-medium text-gray-600 mb-1">Hang Time (s)</label>
+                    <input type="number" id="hang-time" value="7" min="1" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="rest-time" class="block text-sm font-medium text-gray-600 mb-1">Rest Time (s)</label>
+                    <input type="number" id="rest-time" value="3" min="1" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="num-reps" class="block text-sm font-medium text-gray-600 mb-1">Reps per Set</label>
+                    <input type="number" id="num-reps" value="6" min="1" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                </div>
+                <div>
+                    <label for="num-sets" class="block text-sm font-medium text-gray-600 mb-1">Number of Sets</label>
+                    <input type="number" id="num-sets" value="4" min="1" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                </div>
+                <div class="col-span-2">
+                    <label for="set-rest-time" class="block text-sm font-medium text-gray-600 mb-1">Rest Between Sets (s)</label>
+                    <input type="number" id="set-rest-time" value="180" min="1" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                </div>
+                 <div class="col-span-2">
+                    <label for="prepare-time" class="block text-sm font-medium text-gray-600 mb-1">Prepare Time (s)</label>
+                    <input type="number" id="prepare-time" value="10" min="0" class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="message-box" class="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-md hidden transition-opacity duration-300">
+        <span id="message-text"></span>
+        <button onclick="hideMessage()" class="ml-4 font-bold">X</button>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const timerDisplay = document.getElementById('timer-display');
+        const phaseNameEl = document.getElementById('phase-name');
+        const timeLeftEl = document.getElementById('time-left');
+        const currentSetEl = document.getElementById('current-set');
+        const currentRepEl = document.getElementById('current-rep');
+        const startPauseBtn = document.getElementById('start-pause-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const skipBtn = document.getElementById('skip-btn');
+        const hangTimeInput = document.getElementById('hang-time');
+        const restTimeInput = document.getElementById('rest-time');
+        const numRepsInput = document.getElementById('num-reps');
+        const numSetsInput = document.getElementById('num-sets');
+        const setRestTimeInput = document.getElementById('set-rest-time');
+        const prepareTimeInput = document.getElementById('prepare-time');
+        const configInputs = [hangTimeInput, restTimeInput, numRepsInput, numSetsInput, setRestTimeInput, prepareTimeInput];
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+        const progressRing = document.getElementById('progress-ring');
+        const progressRingCircle = document.getElementById('progress-ring-circle');
+        const radius = progressRingCircle.r.baseVal.value;
+        const circumference = 2 * Math.PI * radius;
+
+        // --- State Variables ---
+        let timerInterval = null;
+        let currentState = 'idle'; // idle, prepare, hanging, resting, set-resting, finished
+        let currentSet = 0;
+        let currentRep = 0;
+        let totalSets = 0;
+        let totalReps = 0;
+        let timeLeft = 0; // Time left in the current phase (in seconds)
+        let phaseDuration = 0; // Total duration of the current phase
+        let isPaused = false;
+
+        // --- Configuration ---
+        let config = {
+            hangTime: 7,
+            restTime: 3,
+            numReps: 6,
+            numSets: 4,
+            setRestTime: 180,
+            prepareTime: 10
+        };
+
+        // --- Audio Synthesis (Tone.js) ---
+        let synth = null; // Initialize synth later to ensure user interaction
+        const initAudio = () => {
+            if (!synth && typeof Tone !== 'undefined') {
+                synth = new Tone.Synth().toDestination();
+                console.log("Audio context started.");
+            }
+        };
+        // Play a short beep
+        const playBeep = (note = "C5", duration = "8n") => {
+            if (synth) {
+                try {
+                    synth.triggerAttackRelease(note, duration, Tone.now());
+                } catch (error) {
+                    console.error("Error playing sound:", error);
+                    // Attempt to resume audio context if suspended
+                    if (Tone.context.state === 'suspended') {
+                        Tone.context.resume().then(() => {
+                            console.log("Audio context resumed after error.");
+                            // Try playing again after resuming
+                             try {
+                                synth.triggerAttackRelease(note, duration, Tone.now());
+                             } catch(retryError) {
+                                console.error("Error playing sound after retry:", retryError);
+                             }
+                        }).catch(resumeError => {
+                            console.error("Failed to resume audio context:", resumeError);
+                        });
+                    }
+                }
+            } else {
+                 console.warn("Synth not initialized. Cannot play sound.");
+                 // Try initializing again - might happen if Tone loads slowly
+                 initAudio();
+                 if(synth) playBeep(note, duration); // Try again if init worked
+            }
+        };
+        // Play a sequence for start/end emphasis
+        const playStartSound = () => playBeep("G5", "16n");
+        const playEndSound = () => playBeep("C4", "16n");
+        const playFinishSound = () => {
+             if(synth) {
+                 const now = Tone.now();
+                 synth.triggerAttackRelease("C5", "8n", now);
+                 synth.triggerAttackRelease("E5", "8n", now + 0.2);
+                 synth.triggerAttackRelease("G5", "8n", now + 0.4);
+             }
+        };
+
+        // --- Utility Functions ---
+        // Format time in MM:SS
+        const formatTime = (seconds) => {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        };
+
+        // Show error/info message
+        const showMessage = (text, isError = true) => {
+            messageText.textContent = text;
+            messageBox.classList.remove('hidden', 'bg-red-500', 'bg-blue-500');
+            messageBox.classList.add(isError ? 'bg-red-500' : 'bg-blue-500');
+            messageBox.style.opacity = 1; // Make visible
+            // Auto-hide after 5 seconds
+            setTimeout(hideMessage, 5000);
+        };
+
+        // Hide message box
+        const hideMessage = () => {
+            messageBox.style.opacity = 0; // Fade out
+             // Use transitionend event listener for better hiding after fade
+            messageBox.addEventListener('transitionend', () => {
+                 messageBox.classList.add('hidden');
+            }, { once: true }); // Remove listener after it fires once
+        };
+
+        // Update progress ring
+        const setProgress = (percent) => {
+            const offset = circumference - (percent / 100) * circumference;
+            progressRingCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+            progressRingCircle.style.strokeDashoffset = offset;
+        };
+
+        // --- Timer Logic ---
+        const tick = () => {
+            if (isPaused) return;
+
+            timeLeft--;
+            updateDisplay();
+
+            if (timeLeft <= 0) {
+                moveToNextPhase();
+            } else if (timeLeft <= 3 && timeLeft > 0) {
+                 // Countdown beep for last 3 seconds
+                 playBeep("A4", "16n");
+            }
+        };
+
+        const startTimer = () => {
+            if (timerInterval) clearInterval(timerInterval); // Clear existing interval if any
+            // Validate inputs first
+            if (!validateInputs()) return;
+
+            // Attempt to initialize audio on first start
+            if (!synth) initAudio();
+
+            // If audio context is suspended, try resuming it (requires user gesture)
+            if (Tone.context.state === 'suspended') {
+                Tone.context.resume().then(() => {
+                    console.log("Audio Context resumed on start.");
+                    proceedWithStart();
+                }).catch(err => {
+                    console.error("Could not resume audio context:", err);
+                    showMessage("Audio disabled. Click screen to enable.", false);
+                    // Proceed without audio if resume fails
+                    proceedWithStart();
+                });
+            } else {
+                proceedWithStart();
+            }
+        };
+
+        const proceedWithStart = () => {
+            isPaused = false;
+            if (currentState === 'idle' || currentState === 'finished') {
+                loadConfig();
+                currentSet = 1;
+                currentRep = 0; // Will be incremented in moveToNextPhase
+                moveToNextPhase('prepare'); // Start with prepare phase
+            }
+             else { // Resuming from pause
+                timerInterval = setInterval(tick, 1000);
+            }
+            updateControls();
+            disableConfigInputs();
+            playStartSound(); // Play sound when timer actually starts/resumes
+        };
+
+
+        const pauseTimer = () => {
+            isPaused = true;
+            clearInterval(timerInterval);
+            timerInterval = null;
+            updateControls();
+            playEndSound(); // Sound for pause
+        };
+
+        const resetTimer = () => {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            isPaused = false;
+            currentState = 'idle';
+            currentSet = 0;
+            currentRep = 0;
+            timeLeft = 0;
+            phaseDuration = 0;
+            updateDisplay();
+            updateControls();
+            enableConfigInputs();
+            setProgress(0); // Reset progress ring
+             // Reset display colors and text
+            timerDisplay.className = 'text-center mb-6 p-6 rounded-lg transition-colors duration-300 bg-gray-100';
+            progressRingCircle.className = 'progress-ring__circle text-blue-500';
+            phaseNameEl.textContent = 'Idle';
+            phaseNameEl.className = 'text-xl font-semibold uppercase tracking-wider mb-2 text-gray-600';
+            timeLeftEl.textContent = formatTime(0);
+            timeLeftEl.className = 'text-7xl md:text-8xl font-bold text-gray-800 tabular-nums';
+            currentSetEl.textContent = '- / -';
+            currentRepEl.textContent = '- / -';
+        };
+
+        const skipPhase = () => {
+            if (currentState !== 'idle' && currentState !== 'finished') {
+                playEndSound(); // Sound for skipping
+                moveToNextPhase();
+            }
+        };
+
+        const moveToNextPhase = (forcePhase = null) => {
+            clearInterval(timerInterval); // Stop current timer
+
+            if (forcePhase) {
+                currentState = forcePhase;
+            } else {
+                // Determine the next phase based on the current one
+                switch (currentState) {
+                    case 'prepare':
+                        currentState = 'hanging';
+                        currentRep++; // Start the first rep
+                        break;
+                    case 'hanging':
+                        if (currentRep < totalReps) {
+                            currentState = 'resting';
+                        } else { // Last rep of the set completed
+                            if (currentSet < totalSets) {
+                                currentState = 'set-resting';
+                            } else {
+                                currentState = 'finished'; // Entire workout done
+                            }
+                        }
+                        break;
+                    case 'resting':
+                        currentRep++;
+                        currentState = 'hanging';
+                        break;
+                    case 'set-resting':
+                        currentSet++;
+                        currentRep = 0; // Reset rep counter for the new set
+                        // Start next set with prepare phase if configured
+                        currentState = config.prepareTime > 0 ? 'prepare' : 'hanging';
+                         if (currentState === 'hanging') currentRep++; // If skipping prepare, start rep 1
+                        break;
+                    default:
+                        currentState = 'idle'; // Should not happen in normal flow
+                        break;
+                }
+            }
+
+            // Set up the new phase
+            setupPhase();
+
+            // Start the timer for the new phase if not finished
+            if (currentState !== 'finished' && currentState !== 'idle') {
+                timerInterval = setInterval(tick, 1000);
+                playStartSound(); // Sound for phase start
+            } else if (currentState === 'finished') {
+                playFinishSound(); // Special sound for workout completion
+                updateControls();
+                enableConfigInputs();
+            }
+
+            updateDisplay(); // Update UI immediately for the new phase
+        };
+
+        const setupPhase = () => {
+             // Determine phase duration and update UI elements
+            switch (currentState) {
+                case 'prepare':
+                    phaseDuration = config.prepareTime;
+                    timeLeft = config.prepareTime;
+                    updateUIState('prepare', 'Prepare');
+                    break;
+                case 'hanging':
+                    phaseDuration = config.hangTime;
+                    timeLeft = config.hangTime;
+                    updateUIState('hang', 'Hang');
+                    break;
+                case 'resting':
+                    phaseDuration = config.restTime;
+                    timeLeft = config.restTime;
+                     updateUIState('rest', 'Rest');
+                    break;
+                case 'set-resting':
+                    phaseDuration = config.setRestTime;
+                    timeLeft = config.setRestTime;
+                     updateUIState('set-rest', 'Set Rest');
+                    break;
+                case 'finished':
+                    phaseDuration = 0;
+                    timeLeft = 0;
+                     updateUIState('finished', 'Finished!');
+                    break;
+                case 'idle':
+                default:
+                    phaseDuration = 0;
+                    timeLeft = 0;
+                    updateUIState('idle', 'Idle'); // Use a neutral state style
+                    break;
+            }
+             // Initial progress for the new phase
+            setProgress(phaseDuration > 0 ? 100 : 0);
+        };
+
+        // --- UI Update Functions ---
+        const updateDisplay = () => {
+            timeLeftEl.textContent = formatTime(timeLeft);
+            currentSetEl.textContent = `${currentSet} / ${totalSets}`;
+            currentRepEl.textContent = `${currentRep} / ${totalReps}`;
+
+            // Update progress ring
+            const percent = phaseDuration > 0 ? ((phaseDuration - timeLeft) / phaseDuration) * 100 : 0;
+            // Ensure progress goes from 0 to 100 as time decreases
+             const displayPercent = phaseDuration > 0 ? (timeLeft / phaseDuration) * 100 : 0;
+             setProgress(displayPercent);
+
+            // Update phase name and color based on state (handled in updateUIState)
+        };
+
+        const updateUIState = (stateKey, displayName) => {
+             // Map state key to Tailwind classes defined in config
+             const bgColorClass = `bg-${stateKey}`; // e.g., bg-hang
+             const textColorClass = `text-${stateKey}-dark`; // e.g., text-hang-dark
+             const ringColorClass = `text-${stateKey === 'idle' || stateKey === 'finished' ? 'gray-500' : stateKey + '-dark'}`; // Ring color matches text
+
+             // Apply styles
+             timerDisplay.className = `text-center mb-6 p-6 rounded-lg transition-colors duration-300 ${bgColorClass}`;
+             phaseNameEl.textContent = displayName;
+             phaseNameEl.className = `text-xl font-semibold uppercase tracking-wider mb-2 ${textColorClass}`;
+             timeLeftEl.className = `text-7xl md:text-8xl font-bold ${textColorClass} tabular-nums`;
+             progressRingCircle.className = `progress-ring__circle transition-all duration-300 ${ringColorClass}`;
+
+             // Reset to default gray if idle or finished
+             if (stateKey === 'idle' || stateKey === 'finished') {
+                timerDisplay.className = 'text-center mb-6 p-6 rounded-lg transition-colors duration-300 bg-gray-100';
+                phaseNameEl.className = 'text-xl font-semibold uppercase tracking-wider mb-2 text-gray-600';
+                timeLeftEl.className = 'text-7xl md:text-8xl font-bold text-gray-800 tabular-nums';
+                progressRingCircle.className = 'progress-ring__circle transition-all duration-300 text-gray-500';
+             }
+             if(stateKey === 'finished') {
+                 phaseNameEl.textContent = 'Finished!';
+                 timeLeftEl.textContent = 'GOOD JOB!';
+                 timeLeftEl.className = 'text-4xl md:text-5xl font-bold text-green-600';
+             }
+             if(stateKey === 'idle') {
+                 phaseNameEl.textContent = 'Idle';
+                 timeLeftEl.textContent = formatTime(0);
+             }
+
+        };
+
+
+        const updateControls = () => {
+            const startPauseIcon = startPauseBtn.querySelector('.lucide');
+            const startPauseText = startPauseBtn.querySelector('span:last-child');
+
+            if (currentState === 'idle' || currentState === 'finished') {
+                startPauseIcon.textContent = 'play';
+                startPauseText.textContent = 'Start';
+                startPauseBtn.classList.replace('bg-green-500', 'bg-blue-500');
+                startPauseBtn.classList.replace('hover:bg-green-600', 'hover:bg-blue-600');
+                skipBtn.disabled = true;
+                skipBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else if (isPaused) {
+                startPauseIcon.textContent = 'play';
+                startPauseText.textContent = 'Resume';
+                startPauseBtn.classList.replace('bg-green-500', 'bg-blue-500');
+                startPauseBtn.classList.replace('hover:bg-green-600', 'hover:bg-blue-600');
+                skipBtn.disabled = true; // Disable skip when paused
+                 skipBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            } else { // Running
+                startPauseIcon.textContent = 'pause';
+                startPauseText.textContent = 'Pause';
+                startPauseBtn.classList.replace('bg-blue-500', 'bg-green-500');
+                startPauseBtn.classList.replace('hover:bg-blue-600', 'hover:bg-green-600');
+                skipBtn.disabled = false;
+                skipBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+
+        const disableConfigInputs = () => {
+            configInputs.forEach(input => input.disabled = true);
+        };
+
+        const enableConfigInputs = () => {
+            configInputs.forEach(input => input.disabled = false);
+        };
+
+        // --- Configuration Handling ---
+        const loadConfig = () => {
+            config.hangTime = parseInt(hangTimeInput.value) || 7;
+            config.restTime = parseInt(restTimeInput.value) || 3;
+            config.numReps = parseInt(numRepsInput.value) || 6;
+            config.numSets = parseInt(numSetsInput.value) || 4;
+            config.setRestTime = parseInt(setRestTimeInput.value) || 180;
+            config.prepareTime = parseInt(prepareTimeInput.value) || 10;
+
+            // Update totals used in display
+            totalSets = config.numSets;
+            totalReps = config.numReps;
+
+            // Persist to local storage
+            localStorage.setItem('climberTimerConfig', JSON.stringify(config));
+        };
+
+        const saveConfig = () => {
+             loadConfig(); // Load and validate before saving potentially invalid values
+             showMessage("Configuration saved.", false)
+        };
+
+        const loadConfigFromStorage = () => {
+            const savedConfig = localStorage.getItem('climberTimerConfig');
+            if (savedConfig) {
+                try {
+                    const parsedConfig = JSON.parse(savedConfig);
+                    // Basic validation of loaded config
+                    if (parsedConfig && typeof parsedConfig === 'object') {
+                         hangTimeInput.value = parsedConfig.hangTime || 7;
+                         restTimeInput.value = parsedConfig.restTime || 3;
+                         numRepsInput.value = parsedConfig.numReps || 6;
+                         numSetsInput.value = parsedConfig.numSets || 4;
+                         setRestTimeInput.value = parsedConfig.setRestTime || 180;
+                         prepareTimeInput.value = parsedConfig.prepareTime || 10;
+                         // Update internal config object as well
+                         loadConfig();
+                    }
+                } catch (e) {
+                    console.error("Failed to parse saved config:", e);
+                    localStorage.removeItem('climberTimerConfig'); // Clear invalid data
+                }
+            }
+             // Update display based on loaded config even if timer not running
+             totalSets = parseInt(numSetsInput.value) || 0;
+             totalReps = parseInt(numRepsInput.value) || 0;
+             currentSetEl.textContent = `${currentSet} / ${totalSets}`;
+             currentRepEl.textContent = `${currentRep} / ${totalReps}`;
+        };
+
+         // --- Input Validation ---
+         const validateInputs = () => {
+            let isValid = true;
+            configInputs.forEach(input => {
+                const value = parseInt(input.value);
+                const min = parseInt(input.min);
+                if (isNaN(value) || value < min) {
+                    showMessage(`Invalid value for ${input.labels[0].textContent}. Minimum is ${min}.`, true);
+                    input.classList.add('border-red-500'); // Highlight invalid input
+                    isValid = false;
+                } else {
+                    input.classList.remove('border-red-500'); // Remove highlight if valid
+                }
+            });
+            return isValid;
+         };
+
+
+        // --- Event Listeners ---
+        startPauseBtn.addEventListener('click', () => {
+            // Crucial for starting AudioContext in browsers
+            initAudio();
+
+            if (currentState === 'idle' || currentState === 'finished' || isPaused) {
+                startTimer();
+            } else {
+                pauseTimer();
+            }
+        });
+
+        resetBtn.addEventListener('click', resetTimer);
+        skipBtn.addEventListener('click', skipPhase);
+
+        // Save config when inputs change (debounced slightly)
+        let saveTimeout;
+        configInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                // Clear previous timeout
+                 clearTimeout(saveTimeout);
+                 // Validate instantly for feedback
+                 validateInputs();
+                 // Set a new timeout to save after user stops typing
+                 saveTimeout = setTimeout(saveConfig, 500); // Save after 500ms of inactivity
+            });
+        });
+
+        // Add a global click listener to potentially resume audio context if needed
+        document.body.addEventListener('click', initAudio, { once: true });
+
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set up progress ring styles
+            progressRingCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+            progressRingCircle.style.strokeDashoffset = circumference;
+
+            loadConfigFromStorage(); // Load saved settings on page load
+            resetTimer(); // Initialize display and state
+        });
+
+    </script>
+
+</body>
+</html>
