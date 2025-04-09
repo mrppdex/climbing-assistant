@@ -6,21 +6,12 @@
     <title>Climber Training Timer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep.js/0.12.0/NoSleep.min.js"></script>
     <style>
-      @font-face {
-        font-family: 'LucideIcons';
-        src: url(https://cdn.jsdelivr.net/npm/lucide-static@latest/font/Lucide.ttf) format('truetype');
-      }
-      .lucide {
-        font-family: 'LucideIcons';
-        font-size: 1.5rem; /* Adjust size as needed */
-        line-height: 1;
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-      }
       /* Custom styles for progress ring */
       .progress-ring__circle {
-        transition: stroke-dashoffset 0.35s;
+        /* Use transition on stroke-dashoffset for smooth animation */
+        transition: stroke-dashoffset 0.9s linear; /* Match timer tick */
         transform: rotate(-90deg);
         transform-origin: 50% 50%;
       }
@@ -38,6 +29,12 @@
         outline: 2px solid transparent;
         outline-offset: 2px;
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5); /* Tailwind blue-500 focus ring */
+      }
+      /* Style for inline SVGs in buttons */
+      button svg {
+        width: 1.25rem; /* w-5 */
+        height: 1.25rem; /* h-5 */
+        stroke-width: 2.5;
       }
     </style>
     <script>
@@ -105,12 +102,18 @@
 
         <div class="flex justify-center space-x-3 mb-8">
             <button id="start-pause-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out shadow hover:shadow-md flex items-center space-x-2">
-                <span>Start</span>
+                <span id="start-pause-icon-container">
+                    </span>
+                <span id="start-pause-text-container">Start</span>
             </button>
             <button id="reset-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out shadow hover:shadow-md flex items-center space-x-2">
+                <span id="reset-icon-container">
+                    </span>
                 <span>Reset</span>
             </button>
-             <button id="skip-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out shadow hover:shadow-md flex items-center space-x-2" disabled>
+            <button id="skip-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg transition duration-150 ease-in-out shadow hover:shadow-md flex items-center space-x-2" disabled>
+                <span id="skip-icon-container">
+                   </span>
                 <span>Skip</span>
             </button>
         </div>
@@ -147,12 +150,18 @@
 
     </div>
 
-    <div id="message-box" class="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-md hidden transition-opacity duration-300">
+    <div id="message-box" class="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-md hidden transition-opacity duration-300 z-50">
         <span id="message-text"></span>
         <button onclick="hideMessage()" class="ml-4 font-bold">X</button>
     </div>
 
     <script>
+        // --- SVG Icons --- (Using inline SVGs for reliability)
+        const svgIconPlay = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`;
+        const svgIconPause = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>`;
+        const svgIconReset = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>`; // rotate-ccw
+        const svgIconSkip = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>`; // skip-forward
+
         // --- DOM Elements ---
         const timerDisplay = document.getElementById('timer-display');
         const phaseNameEl = document.getElementById('phase-name');
@@ -162,6 +171,12 @@
         const startPauseBtn = document.getElementById('start-pause-btn');
         const resetBtn = document.getElementById('reset-btn');
         const skipBtn = document.getElementById('skip-btn');
+        // Icon Containers
+        const startPauseIconContainer = document.getElementById('start-pause-icon-container');
+        const startPauseTextContainer = document.getElementById('start-pause-text-container');
+        const resetIconContainer = document.getElementById('reset-icon-container');
+        const skipIconContainer = document.getElementById('skip-icon-container');
+        // Inputs
         const hangTimeInput = document.getElementById('hang-time');
         const restTimeInput = document.getElementById('rest-time');
         const numRepsInput = document.getElementById('num-reps');
@@ -169,6 +184,7 @@
         const setRestTimeInput = document.getElementById('set-rest-time');
         const prepareTimeInput = document.getElementById('prepare-time');
         const configInputs = [hangTimeInput, restTimeInput, numRepsInput, numSetsInput, setRestTimeInput, prepareTimeInput];
+        // Other UI
         const messageBox = document.getElementById('message-box');
         const messageText = document.getElementById('message-text');
         const progressRing = document.getElementById('progress-ring');
@@ -197,85 +213,105 @@
             prepareTime: 10
         };
 
-        // --- Audio Synthesis (Tone.js) ---
-        let synth = null; // Initialize synth later to ensure user interaction
-        const initAudio = () => {
-            if (!synth && typeof Tone !== 'undefined') {
-                synth = new Tone.Synth().toDestination();
-                console.log("Audio context started.");
+        // --- NoSleep ---
+        let noSleep = null;
+        const initNoSleep = () => {
+            if (typeof NoSleep !== 'undefined' && !noSleep) {
+                noSleep = new NoSleep();
+                console.log("NoSleep initialized.");
+            } else if (!noSleep) {
+                console.warn("NoSleep.js library not found.");
             }
         };
-        // Play a short beep
+        const enableNoSleep = () => {
+            if (noSleep && !noSleep.isEnabled) {
+                noSleep.enable().then(() => {
+                    console.log("Screen lock prevention enabled.");
+                }).catch(err => {
+                    console.error("Could not enable NoSleep:", err);
+                    showMessage("Could not prevent screen lock.", true);
+                });
+            }
+        };
+        const disableNoSleep = () => {
+            if (noSleep && noSleep.isEnabled) {
+                noSleep.disable();
+                console.log("Screen lock prevention disabled.");
+            }
+        };
+
+        // --- Audio Synthesis (Tone.js) ---
+        let synth = null;
+        const initAudio = () => {
+             if (!synth && typeof Tone !== 'undefined') {
+                 try {
+                    if (Tone.context.state === 'suspended') {
+                        Tone.context.resume().then(() => {
+                            console.log("Audio context resumed during init.");
+                            synth = new Tone.Synth().toDestination();
+                            console.log("Audio context started.");
+                        }).catch(err => console.error("Failed to resume audio context on init:", err));
+                    } else {
+                        synth = new Tone.Synth().toDestination();
+                        console.log("Audio context started.");
+                    }
+                } catch (err) {
+                     console.error("Error initializing Tone.js synth:", err);
+                }
+            }
+        };
         const playBeep = (note = "C5", duration = "8n") => {
             if (synth) {
                 try {
-                    synth.triggerAttackRelease(note, duration, Tone.now());
-                } catch (error) {
-                    console.error("Error playing sound:", error);
-                    // Attempt to resume audio context if suspended
-                    if (Tone.context.state === 'suspended') {
-                        Tone.context.resume().then(() => {
-                            console.log("Audio context resumed after error.");
-                            // Try playing again after resuming
-                             try {
-                                synth.triggerAttackRelease(note, duration, Tone.now());
-                             } catch(retryError) {
-                                console.error("Error playing sound after retry:", retryError);
-                             }
-                        }).catch(resumeError => {
-                            console.error("Failed to resume audio context:", resumeError);
-                        });
+                    if (Tone.context.state === 'running') {
+                        synth.triggerAttackRelease(note, duration, Tone.now());
+                    } else {
+                         console.warn("Audio context not running, attempting resume...");
+                         Tone.context.resume().then(() => {
+                             console.log("Audio resumed for beep.");
+                             synth.triggerAttackRelease(note, duration, Tone.now());
+                         }).catch(err => console.error("Failed resume for beep:", err));
                     }
-                }
+                } catch (error) { console.error("Error playing sound:", error); }
             } else {
-                 console.warn("Synth not initialized. Cannot play sound.");
-                 // Try initializing again - might happen if Tone loads slowly
+                 console.warn("Synth not initialized.");
                  initAudio();
-                 if(synth) playBeep(note, duration); // Try again if init worked
+                 if(synth) playBeep(note, duration);
             }
         };
-        // Play a sequence for start/end emphasis
         const playStartSound = () => playBeep("G5", "16n");
         const playEndSound = () => playBeep("C4", "16n");
         const playFinishSound = () => {
-             if(synth) {
+             if(synth && Tone.context.state === 'running') {
                  const now = Tone.now();
                  synth.triggerAttackRelease("C5", "8n", now);
                  synth.triggerAttackRelease("E5", "8n", now + 0.2);
                  synth.triggerAttackRelease("G5", "8n", now + 0.4);
-             }
+             } else if (synth) { console.warn("Audio context not running for finish sound."); }
         };
 
         // --- Utility Functions ---
-        // Format time in MM:SS
         const formatTime = (seconds) => {
             const mins = Math.floor(seconds / 60);
             const secs = seconds % 60;
             return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
         };
-
-        // Show error/info message
         const showMessage = (text, isError = true) => {
             messageText.textContent = text;
             messageBox.classList.remove('hidden', 'bg-red-500', 'bg-blue-500');
             messageBox.classList.add(isError ? 'bg-red-500' : 'bg-blue-500');
-            messageBox.style.opacity = 1; // Make visible
-            // Auto-hide after 5 seconds
+            messageBox.style.opacity = 1;
             setTimeout(hideMessage, 5000);
         };
-
-        // Hide message box
         const hideMessage = () => {
-            messageBox.style.opacity = 0; // Fade out
-             // Use transitionend event listener for better hiding after fade
+            messageBox.style.opacity = 0;
             messageBox.addEventListener('transitionend', () => {
                  messageBox.classList.add('hidden');
-            }, { once: true }); // Remove listener after it fires once
+            }, { once: true });
         };
-
-        // Update progress ring
         const setProgress = (percent) => {
-            const offset = circumference - (percent / 100) * circumference;
+            const clampedPercent = Math.max(0, Math.min(100, percent));
+            const offset = circumference - (clampedPercent / 100) * circumference;
             progressRingCircle.style.strokeDasharray = `${circumference} ${circumference}`;
             progressRingCircle.style.strokeDashoffset = offset;
         };
@@ -283,27 +319,19 @@
         // --- Timer Logic ---
         const tick = () => {
             if (isPaused) return;
-
             timeLeft--;
             updateDisplay();
-
             if (timeLeft <= 0) {
                 moveToNextPhase();
             } else if (timeLeft <= 3 && timeLeft > 0) {
-                 // Countdown beep for last 3 seconds
                  playBeep("A4", "16n");
             }
         };
-
         const startTimer = () => {
-            if (timerInterval) clearInterval(timerInterval); // Clear existing interval if any
-            // Validate inputs first
+            if (timerInterval) clearInterval(timerInterval);
             if (!validateInputs()) return;
-
-            // Attempt to initialize audio on first start
-            if (!synth) initAudio();
-
-            // If audio context is suspended, try resuming it (requires user gesture)
+            initNoSleep();
+            initAudio();
             if (Tone.context.state === 'suspended') {
                 Tone.context.resume().then(() => {
                     console.log("Audio Context resumed on start.");
@@ -311,39 +339,35 @@
                 }).catch(err => {
                     console.error("Could not resume audio context:", err);
                     showMessage("Audio disabled. Click screen to enable.", false);
-                    // Proceed without audio if resume fails
                     proceedWithStart();
                 });
             } else {
                 proceedWithStart();
             }
         };
-
         const proceedWithStart = () => {
             isPaused = false;
             if (currentState === 'idle' || currentState === 'finished') {
                 loadConfig();
                 currentSet = 1;
-                currentRep = 0; // Will be incremented in moveToNextPhase
-                moveToNextPhase('prepare'); // Start with prepare phase
+                currentRep = 0;
+                moveToNextPhase('prepare');
+            } else {
+                 timerInterval = setInterval(tick, 1000);
             }
-             else { // Resuming from pause
-                timerInterval = setInterval(tick, 1000);
-            }
-            updateControls();
+            enableNoSleep();
+            updateControls(); // Update controls *before* disabling inputs
             disableConfigInputs();
-            playStartSound(); // Play sound when timer actually starts/resumes
+            playStartSound();
         };
-
-
         const pauseTimer = () => {
             isPaused = true;
             clearInterval(timerInterval);
             timerInterval = null;
             updateControls();
-            playEndSound(); // Sound for pause
+            playEndSound();
+            disableNoSleep();
         };
-
         const resetTimer = () => {
             clearInterval(timerInterval);
             timerInterval = null;
@@ -354,314 +378,205 @@
             timeLeft = 0;
             phaseDuration = 0;
             updateDisplay();
-            updateControls();
+            updateControls(); // Update controls *after* state change
             enableConfigInputs();
-            setProgress(0); // Reset progress ring
-             // Reset display colors and text
-            timerDisplay.className = 'text-center mb-6 p-6 rounded-lg transition-colors duration-300 bg-gray-100';
-            progressRingCircle.className = 'progress-ring__circle text-blue-500';
-            phaseNameEl.textContent = 'Idle';
-            phaseNameEl.className = 'text-xl font-semibold uppercase tracking-wider mb-2 text-gray-600';
-            timeLeftEl.textContent = formatTime(0);
-            timeLeftEl.className = 'text-7xl md:text-8xl font-bold text-gray-800 tabular-nums';
-            currentSetEl.textContent = '- / -';
-            currentRepEl.textContent = '- / -';
+            setProgress(0);
+            updateUIState('idle', 'Idle');
+            disableNoSleep();
         };
-
         const skipPhase = () => {
-            if (currentState !== 'idle' && currentState !== 'finished') {
-                playEndSound(); // Sound for skipping
+            if (currentState !== 'idle' && currentState !== 'finished' && !isPaused) {
+                playEndSound();
                 moveToNextPhase();
             }
         };
-
         const moveToNextPhase = (forcePhase = null) => {
-            clearInterval(timerInterval); // Stop current timer
-
-            if (forcePhase) {
-                currentState = forcePhase;
-            } else {
-                // Determine the next phase based on the current one
-                switch (currentState) {
-                    case 'prepare':
-                        currentState = 'hanging';
-                        currentRep++; // Start the first rep
-                        break;
-                    case 'hanging':
-                        if (currentRep < totalReps) {
-                            currentState = 'resting';
-                        } else { // Last rep of the set completed
-                            if (currentSet < totalSets) {
-                                currentState = 'set-resting';
-                            } else {
-                                currentState = 'finished'; // Entire workout done
-                            }
-                        }
-                        break;
-                    case 'resting':
-                        currentRep++;
-                        currentState = 'hanging';
-                        break;
-                    case 'set-resting':
-                        currentSet++;
-                        currentRep = 0; // Reset rep counter for the new set
-                        // Start next set with prepare phase if configured
-                        currentState = config.prepareTime > 0 ? 'prepare' : 'hanging';
-                         if (currentState === 'hanging') currentRep++; // If skipping prepare, start rep 1
-                        break;
-                    default:
-                        currentState = 'idle'; // Should not happen in normal flow
-                        break;
+            clearInterval(timerInterval);
+            if (!forcePhase) {
+                 switch (currentState) {
+                    case 'prepare': currentState = 'hanging'; currentRep++; break;
+                    case 'hanging': currentState = (currentRep < totalReps) ? 'resting' : (currentSet < totalSets ? 'set-resting' : 'finished'); break;
+                    case 'resting': currentRep++; currentState = 'hanging'; break;
+                    case 'set-resting': currentSet++; currentRep = 0; currentState = config.prepareTime > 0 ? 'prepare' : 'hanging'; if (currentState === 'hanging') currentRep++; break;
+                    default: currentState = 'idle'; break;
                 }
+            } else {
+                 currentState = forcePhase;
+                 if (forcePhase === 'prepare') currentRep = 0;
             }
-
-            // Set up the new phase
-            setupPhase();
-
-            // Start the timer for the new phase if not finished
+            setupPhase(); // Set up duration, UI etc.
             if (currentState !== 'finished' && currentState !== 'idle') {
                 timerInterval = setInterval(tick, 1000);
-                playStartSound(); // Sound for phase start
-            } else if (currentState === 'finished') {
-                playFinishSound(); // Special sound for workout completion
-                updateControls();
-                enableConfigInputs();
+                playStartSound();
+            } else {
+                if (currentState === 'finished') {
+                    playFinishSound();
+                    disableNoSleep();
+                }
+                updateControls(); // Update controls if finished or idle
+                enableConfigInputs(); // Enable config if finished or idle
             }
-
-            updateDisplay(); // Update UI immediately for the new phase
+            updateDisplay(); // Update text/progress immediately
         };
-
         const setupPhase = () => {
-             // Determine phase duration and update UI elements
             switch (currentState) {
-                case 'prepare':
-                    phaseDuration = config.prepareTime;
-                    timeLeft = config.prepareTime;
-                    updateUIState('prepare', 'Prepare');
-                    break;
-                case 'hanging':
-                    phaseDuration = config.hangTime;
-                    timeLeft = config.hangTime;
-                    updateUIState('hang', 'Hang');
-                    break;
-                case 'resting':
-                    phaseDuration = config.restTime;
-                    timeLeft = config.restTime;
-                     updateUIState('rest', 'Rest');
-                    break;
-                case 'set-resting':
-                    phaseDuration = config.setRestTime;
-                    timeLeft = config.setRestTime;
-                     updateUIState('set-rest', 'Set Rest');
-                    break;
-                case 'finished':
-                    phaseDuration = 0;
-                    timeLeft = 0;
-                     updateUIState('finished', 'Finished!');
-                    break;
-                case 'idle':
-                default:
-                    phaseDuration = 0;
-                    timeLeft = 0;
-                    updateUIState('idle', 'Idle'); // Use a neutral state style
-                    break;
+                case 'prepare': phaseDuration = config.prepareTime; timeLeft = config.prepareTime; updateUIState('prepare', 'Prepare'); break;
+                case 'hanging': phaseDuration = config.hangTime; timeLeft = config.hangTime; updateUIState('hang', 'Hang'); break;
+                case 'resting': phaseDuration = config.restTime; timeLeft = config.restTime; updateUIState('rest', 'Rest'); break;
+                case 'set-resting': phaseDuration = config.setRestTime; timeLeft = config.setRestTime; updateUIState('set-rest', 'Set Rest'); break;
+                case 'finished': phaseDuration = 0; timeLeft = 0; updateUIState('finished', 'Finished!'); break;
+                case 'idle': default: phaseDuration = 0; timeLeft = 0; updateUIState('idle', 'Idle'); break;
             }
-             // Initial progress for the new phase
-            setProgress(phaseDuration > 0 ? 100 : 0);
+            setProgress(100); // Start full
         };
 
         // --- UI Update Functions ---
         const updateDisplay = () => {
-            timeLeftEl.textContent = formatTime(timeLeft);
-            currentSetEl.textContent = `${currentSet} / ${totalSets}`;
-            currentRepEl.textContent = `${currentRep} / ${totalReps}`;
-
-            // Update progress ring
-            const percent = phaseDuration > 0 ? ((phaseDuration - timeLeft) / phaseDuration) * 100 : 0;
-            // Ensure progress goes from 0 to 100 as time decreases
-             const displayPercent = phaseDuration > 0 ? (timeLeft / phaseDuration) * 100 : 0;
-             setProgress(displayPercent);
-
-            // Update phase name and color based on state (handled in updateUIState)
+            if (currentState !== 'finished') {
+                 timeLeftEl.textContent = formatTime(timeLeft);
+            }
+            currentSetEl.textContent = `${currentState === 'idle' ? '-' : currentSet} / ${totalSets || '-'}`;
+            currentRepEl.textContent = `${(currentState === 'idle' || currentState === 'set-resting' || currentState === 'prepare') ? '-' : currentRep} / ${totalReps || '-'}`;
+            const displayPercent = phaseDuration > 0 ? (timeLeft / phaseDuration) * 100 : (currentState === 'finished' ? 100 : 0); // Show full green ring when finished
+            setProgress(displayPercent);
         };
-
         const updateUIState = (stateKey, displayName) => {
-             // Map state key to Tailwind classes defined in config
-             const bgColorClass = `bg-${stateKey}`; // e.g., bg-hang
-             const textColorClass = `text-${stateKey}-dark`; // e.g., text-hang-dark
-             const ringColorClass = `text-${stateKey === 'idle' || stateKey === 'finished' ? 'gray-500' : stateKey + '-dark'}`; // Ring color matches text
-
-             // Apply styles
-             timerDisplay.className = `text-center mb-6 p-6 rounded-lg transition-colors duration-300 ${bgColorClass}`;
+             const stateMap = {
+                 'idle': { bg: 'bg-gray-100', text: 'text-gray-600', ring: 'text-gray-500', timeText: 'text-gray-800' },
+                 'prepare': { bg: 'bg-prepare', text: 'text-prepare-dark', ring: 'text-prepare-dark', timeText: 'text-prepare-dark' },
+                 'hang': { bg: 'bg-hang', text: 'text-hang-dark', ring: 'text-hang-dark', timeText: 'text-hang-dark' },
+                 'rest': { bg: 'bg-rest', text: 'text-rest-dark', ring: 'text-rest-dark', timeText: 'text-rest-dark' },
+                 'set-rest': { bg: 'bg-set-rest', text: 'text-set-rest-dark', ring: 'text-set-rest-dark', timeText: 'text-set-rest-dark' },
+                 'finished': { bg: 'bg-green-100', text: 'text-green-700', ring: 'text-green-600', timeText: 'text-green-600' }
+             };
+             const styles = stateMap[stateKey] || stateMap['idle'];
+             timerDisplay.className = `text-center mb-6 p-6 rounded-lg transition-colors duration-300 ${styles.bg}`;
              phaseNameEl.textContent = displayName;
-             phaseNameEl.className = `text-xl font-semibold uppercase tracking-wider mb-2 ${textColorClass}`;
-             timeLeftEl.className = `text-7xl md:text-8xl font-bold ${textColorClass} tabular-nums`;
-             progressRingCircle.className = `progress-ring__circle transition-all duration-300 ${ringColorClass}`;
+             phaseNameEl.className = `text-xl font-semibold uppercase tracking-wider mb-2 ${styles.text}`;
+             progressRingCircle.className = `progress-ring__circle ${styles.ring}`; // Removed transition here, handled in CSS
 
-             // Reset to default gray if idle or finished
-             if (stateKey === 'idle' || stateKey === 'finished') {
-                timerDisplay.className = 'text-center mb-6 p-6 rounded-lg transition-colors duration-300 bg-gray-100';
-                phaseNameEl.className = 'text-xl font-semibold uppercase tracking-wider mb-2 text-gray-600';
-                timeLeftEl.className = 'text-7xl md:text-8xl font-bold text-gray-800 tabular-nums';
-                progressRingCircle.className = 'progress-ring__circle transition-all duration-300 text-gray-500';
-             }
-             if(stateKey === 'finished') {
-                 phaseNameEl.textContent = 'Finished!';
+             if (stateKey === 'finished') {
                  timeLeftEl.textContent = 'GOOD JOB!';
-                 timeLeftEl.className = 'text-4xl md:text-5xl font-bold text-green-600';
+                 timeLeftEl.className = `text-4xl md:text-5xl font-bold ${styles.timeText}`;
+             } else {
+                 timeLeftEl.textContent = formatTime(timeLeft); // Ensure time updates correctly
+                 timeLeftEl.className = `text-7xl md:text-8xl font-bold ${styles.timeText} tabular-nums`;
              }
-             if(stateKey === 'idle') {
-                 phaseNameEl.textContent = 'Idle';
-                 timeLeftEl.textContent = formatTime(0);
-             }
-
         };
-
-
         const updateControls = () => {
-            const startPauseIcon = startPauseBtn.querySelector('.lucide');
-            const startPauseText = startPauseBtn.querySelector('span:last-child');
+            // Set static icons first
+            resetIconContainer.innerHTML = svgIconReset;
+            skipIconContainer.innerHTML = svgIconSkip;
 
             if (currentState === 'idle' || currentState === 'finished') {
-                startPauseIcon.textContent = 'play';
-                startPauseText.textContent = 'Start';
-                startPauseBtn.classList.replace('bg-green-500', 'bg-blue-500');
-                startPauseBtn.classList.replace('hover:bg-green-600', 'hover:bg-blue-600');
+                startPauseIconContainer.innerHTML = svgIconPlay;
+                startPauseTextContainer.textContent = 'Start';
+                startPauseBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                startPauseBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
                 skipBtn.disabled = true;
                 skipBtn.classList.add('opacity-50', 'cursor-not-allowed');
             } else if (isPaused) {
-                startPauseIcon.textContent = 'play';
-                startPauseText.textContent = 'Resume';
-                startPauseBtn.classList.replace('bg-green-500', 'bg-blue-500');
-                startPauseBtn.classList.replace('hover:bg-green-600', 'hover:bg-blue-600');
-                skipBtn.disabled = true; // Disable skip when paused
-                 skipBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                startPauseIconContainer.innerHTML = svgIconPlay; // Show play icon when paused
+                startPauseTextContainer.textContent = 'Resume';
+                startPauseBtn.classList.remove('bg-green-500', 'hover:bg-green-600');
+                startPauseBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                skipBtn.disabled = true;
+                skipBtn.classList.add('opacity-50', 'cursor-not-allowed');
             } else { // Running
-                startPauseIcon.textContent = 'pause';
-                startPauseText.textContent = 'Pause';
-                startPauseBtn.classList.replace('bg-blue-500', 'bg-green-500');
-                startPauseBtn.classList.replace('hover:bg-blue-600', 'hover:bg-green-600');
+                startPauseIconContainer.innerHTML = svgIconPause; // Show pause icon when running
+                startPauseTextContainer.textContent = 'Pause';
+                startPauseBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                startPauseBtn.classList.add('bg-green-500', 'hover:bg-green-600');
                 skipBtn.disabled = false;
                 skipBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         };
-
-        const disableConfigInputs = () => {
-            configInputs.forEach(input => input.disabled = true);
-        };
-
-        const enableConfigInputs = () => {
-            configInputs.forEach(input => input.disabled = false);
-        };
+        const disableConfigInputs = () => { configInputs.forEach(input => input.disabled = true); };
+        const enableConfigInputs = () => { configInputs.forEach(input => input.disabled = false); };
 
         // --- Configuration Handling ---
         const loadConfig = () => {
-            config.hangTime = parseInt(hangTimeInput.value) || 7;
-            config.restTime = parseInt(restTimeInput.value) || 3;
-            config.numReps = parseInt(numRepsInput.value) || 6;
-            config.numSets = parseInt(numSetsInput.value) || 4;
-            config.setRestTime = parseInt(setRestTimeInput.value) || 180;
-            config.prepareTime = parseInt(prepareTimeInput.value) || 10;
+             config.hangTime = parseInt(hangTimeInput.value) || config.hangTime;
+             config.restTime = parseInt(restTimeInput.value) || config.restTime;
+             config.numReps = parseInt(numRepsInput.value) || config.numReps;
+             config.numSets = parseInt(numSetsInput.value) || config.numSets;
+             config.setRestTime = parseInt(setRestTimeInput.value) || config.setRestTime;
+             config.prepareTime = parseInt(prepareTimeInput.value); // Allow 0
+             if (isNaN(config.prepareTime) || config.prepareTime < 0) config.prepareTime = 10; // Default if invalid
 
-            // Update totals used in display
-            totalSets = config.numSets;
-            totalReps = config.numReps;
-
-            // Persist to local storage
-            localStorage.setItem('climberTimerConfig', JSON.stringify(config));
+             totalSets = config.numSets;
+             totalReps = config.numReps;
+             localStorage.setItem('climberTimerConfig', JSON.stringify(config));
         };
-
         const saveConfig = () => {
-             loadConfig(); // Load and validate before saving potentially invalid values
-             showMessage("Configuration saved.", false)
+             if (validateInputs()) {
+                 loadConfig();
+                 showMessage("Configuration saved.", false);
+                 if (currentState === 'idle' || currentState === 'finished') {
+                     updateDisplay(); // Update totals display if changed while idle
+                 }
+             }
         };
-
         const loadConfigFromStorage = () => {
             const savedConfig = localStorage.getItem('climberTimerConfig');
             if (savedConfig) {
                 try {
                     const parsedConfig = JSON.parse(savedConfig);
-                    // Basic validation of loaded config
                     if (parsedConfig && typeof parsedConfig === 'object') {
-                         hangTimeInput.value = parsedConfig.hangTime || 7;
-                         restTimeInput.value = parsedConfig.restTime || 3;
-                         numRepsInput.value = parsedConfig.numReps || 6;
-                         numSetsInput.value = parsedConfig.numSets || 4;
-                         setRestTimeInput.value = parsedConfig.setRestTime || 180;
-                         prepareTimeInput.value = parsedConfig.prepareTime || 10;
-                         // Update internal config object as well
-                         loadConfig();
+                         hangTimeInput.value = parsedConfig.hangTime ?? 7;
+                         restTimeInput.value = parsedConfig.restTime ?? 3;
+                         numRepsInput.value = parsedConfig.numReps ?? 6;
+                         numSetsInput.value = parsedConfig.numSets ?? 4;
+                         setRestTimeInput.value = parsedConfig.setRestTime ?? 180;
+                         prepareTimeInput.value = parsedConfig.prepareTime ?? 10;
+                         loadConfig(); // Load into active config and update totals
                     }
-                } catch (e) {
-                    console.error("Failed to parse saved config:", e);
-                    localStorage.removeItem('climberTimerConfig'); // Clear invalid data
-                }
+                } catch (e) { console.error("Failed to parse saved config:", e); localStorage.removeItem('climberTimerConfig'); }
             }
-             // Update display based on loaded config even if timer not running
-             totalSets = parseInt(numSetsInput.value) || 0;
-             totalReps = parseInt(numRepsInput.value) || 0;
-             currentSetEl.textContent = `${currentSet} / ${totalSets}`;
-             currentRepEl.textContent = `${currentRep} / ${totalReps}`;
+            updateDisplay(); // Update display with loaded/default values
         };
 
          // --- Input Validation ---
          const validateInputs = () => {
             let isValid = true;
             configInputs.forEach(input => {
-                const value = parseInt(input.value);
                 const min = parseInt(input.min);
+                const value = parseInt(input.value);
                 if (isNaN(value) || value < min) {
                     showMessage(`Invalid value for ${input.labels[0].textContent}. Minimum is ${min}.`, true);
-                    input.classList.add('border-red-500'); // Highlight invalid input
+                    input.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-300');
+                    input.classList.remove('focus:border-blue-500', 'focus:ring-blue-200');
                     isValid = false;
                 } else {
-                    input.classList.remove('border-red-500'); // Remove highlight if valid
+                    input.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-300');
+                    input.classList.add('focus:border-blue-500', 'focus:ring-blue-200');
                 }
             });
             return isValid;
          };
 
-
         // --- Event Listeners ---
         startPauseBtn.addEventListener('click', () => {
-            // Crucial for starting AudioContext in browsers
-            initAudio();
-
-            if (currentState === 'idle' || currentState === 'finished' || isPaused) {
-                startTimer();
-            } else {
-                pauseTimer();
-            }
+            if (currentState === 'idle' || currentState === 'finished' || isPaused) { startTimer(); } else { pauseTimer(); }
         });
-
         resetBtn.addEventListener('click', resetTimer);
         skipBtn.addEventListener('click', skipPhase);
-
-        // Save config when inputs change (debounced slightly)
         let saveTimeout;
         configInputs.forEach(input => {
             input.addEventListener('input', () => {
-                // Clear previous timeout
                  clearTimeout(saveTimeout);
-                 // Validate instantly for feedback
-                 validateInputs();
-                 // Set a new timeout to save after user stops typing
-                 saveTimeout = setTimeout(saveConfig, 500); // Save after 500ms of inactivity
+                 if (validateInputs()) { saveTimeout = setTimeout(saveConfig, 600); }
             });
         });
-
-        // Add a global click listener to potentially resume audio context if needed
-        document.body.addEventListener('click', initAudio, { once: true });
-
+        document.body.addEventListener('pointerdown', () => { initAudio(); initNoSleep(); }, { once: true });
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Set up progress ring styles
+            initNoSleep();
             progressRingCircle.style.strokeDasharray = `${circumference} ${circumference}`;
             progressRingCircle.style.strokeDashoffset = circumference;
-
-            loadConfigFromStorage(); // Load saved settings on page load
-            resetTimer(); // Initialize display and state
+            loadConfigFromStorage();
+            resetTimer(); // Initialize display, controls, and icons
         });
 
     </script>
